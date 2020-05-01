@@ -1,6 +1,9 @@
 library(dplyr)
 library(janeaustenr)
 library(tidytext)
+library(forcats)
+library(gutenbergr)
+library(ggplot2)
 
 #Get the tokens
 #count the frequency for each word
@@ -78,3 +81,59 @@ frequency_by_rank %>%
   geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
   scale_x_log10() +
   scale_y_log10()
+
+
+#Binding IDF data from the tidytext library onto the book_words tibble. Dropping columns (total) that won't be used going forwards. 
+
+book_words <- book_words %>%
+  bind_tf_idf(word, book, n)
+
+book_words %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+book_words %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  group_by(book) %>% 
+  top_n(15) %>% 
+  ungroup() %>%
+  ggplot(aes(word, tf_idf, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~book, ncol = 2, scales = "free") +
+  coord_flip()
+
+##Physics textbook analysis using tf-idf (text frequency * inverse document frequency).IDF is calculated from the corpus of content you are analysing. 
+library(forecats)
+
+library(gutenbergr)
+physics <- gutenberg_download(c(37729, 14725, 13476, 30155), 
+                              meta_fields = "author")
+
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, author, n) %>%
+  mutate(word = fct_reorder(word, tf_idf)) %>%
+  mutate(author = factor(author, levels = c("Galilei, Galileo",
+                                            "Huygens, Christiaan", 
+                                            "Tesla, Nikola",
+                                            "Einstein, Albert")))
+plot_physics %>%
+  group_by(author) %>%
+  top_n(15, tf_idf) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = author)) + 
+  geom_col(show.legend = FALSE) + 
+  labs(x = NULL, y = "tf_idf") + 
+  facet_wrap(~author, ncol = 2, scales = "free") + 
+  coord_flip()
+
+
+
+
+
+
+
+
+
