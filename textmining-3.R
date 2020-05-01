@@ -4,6 +4,7 @@ library(tidytext)
 library(forcats)
 library(gutenbergr)
 library(ggplot2)
+library(stringr)
 
 #Get the tokens
 #count the frequency for each word
@@ -111,6 +112,16 @@ library(gutenbergr)
 physics <- gutenberg_download(c(37729, 14725, 13476, 30155), 
                               meta_fields = "author")
 
+
+mystopwords <- tibble(word = c("eq", "co", "rc", "ac", "ak", "bn", 
+                               "fig", "file", "cg", "cb", "cm",
+                               "ab", "_k", "_k_", "_x"))
+
+
+physics_words <- anti_join(physics_words, mystopwords, by = "word")
+
+
+
 plot_physics <- physics_words %>%
   bind_tf_idf(word, author, n) %>%
   mutate(word = fct_reorder(word, tf_idf)) %>%
@@ -129,8 +140,11 @@ plot_physics %>%
   facet_wrap(~author, ncol = 2, scales = "free") + 
   coord_flip()
 
+library(stringr)
 
-
+physics %>% 
+  filter(str_detect(text, "_k_")) %>% 
+  select(text)
 
 
 
